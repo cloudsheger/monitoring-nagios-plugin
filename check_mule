@@ -1,17 +1,13 @@
 #!/bin/bash
 
-# Default values
-HOST=""
+# Default value
 SERVICE=""
 
 # Parse command line options
-while getopts ":c:H:" opt; do
+while getopts ":c:" opt; do
   case $opt in
     c)
       SERVICE="$OPTARG"
-      ;;
-    H)
-      HOST="$OPTARG"
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -24,17 +20,17 @@ while getopts ":c:H:" opt; do
   esac
 done
 
-# Check if required options are provided
-if [ -z "$SERVICE" ] || [ -z "$HOST" ]; then
-  echo "Usage: $(basename "$0") -c <service> -H <host>"
+# Check if required option is provided
+if [ -z "$SERVICE" ]; then
+  echo "Usage: $(basename "$0") -c <service>"
   exit 1
 fi
 
 # Check if the service is running
-if ssh "$HOST" "ps ax | grep -v grep | grep -q $SERVICE"; then
-    echo "OK - $SERVICE service is running on $HOST"
+if ps ax | grep -v grep | grep -v "$(basename "$0")" | grep -q "$SERVICE"; then
+    echo "OK - $SERVICE service is running"
     exit 0  # Exit with status 0 (OK)
 else
-    echo "CRITICAL - $SERVICE service is not running on $HOST"
+    echo "CRITICAL - $SERVICE service is not running"
     exit 2  # Exit with status 2 (CRITICAL)
 fi
