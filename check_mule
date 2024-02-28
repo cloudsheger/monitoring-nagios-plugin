@@ -1,13 +1,17 @@
 #!/bin/bash
 
-# Default value
+# Default values
 SERVICE=""
+REMOTE_HOST="localhost"
 
 # Parse command line options
-while getopts ":c:" opt; do
+while getopts ":c:H:" opt; do
   case $opt in
     c)
       SERVICE="$OPTARG"
+      ;;
+    H)
+      REMOTE_HOST="$OPTARG"
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -20,17 +24,29 @@ while getopts ":c:" opt; do
   esac
 done
 
-# Check if required option is provided
+# Check if required options are provided
 if [ -z "$SERVICE" ]; then
-  echo "Usage: $(basename "$0") -c <service>"
+  echo "Usage: $(basename "$0") -c <service> [-H <remote_host>]"
   exit 1
 fi
 
-# Check if the service is running
-if ps ax | grep -v grep | grep -v "$(basename "$0")" | grep -q "$SERVICE"; then
-    echo "OK - $SERVICE service is running"
-    exit 0  # Exit with status 0 (OK)
+# Check if the service is running on the remote host
+if [ "$REMOTE_HOST" = "localhost" ]; then
+    # Check locally
+    if ps ax | grep -v grep | grep -v "$(basename "$0")" | grep -q "$SERVICE"; then
+        echo "OK - $SERVICE service is running"
+        exit 0  # Exit with status 0 (OK)
+    else
+        echo "CRITICAL - $SERVICE service is not running"
+        exit 2  # Exit with status 2 (CRITICAL)
+    fi
 else
-    echo "CRITICAL - $SERVICE service is not running"
-    exit 2  # Exit with status 2 (CRITICAL)
+    # Check remotely
+    if ssh "$REMOTE_HOST" "ps ax | grep -v grep | grep -v \"$(basename "$0")\" | grep -q \"$SERVICE\""; then
+        echo "OK - $SERVICE service is running on $REMOTE_HOST"
+        exit 0  # Exit with status 0 (OK)
+    else
+        echo "CRITICAL - $SERVICE service is not running on $REMOTE_HOST"
+        exit 2  # Exit with status 2 (CRITICAL)
+    fi
 fi
